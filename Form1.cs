@@ -17,9 +17,12 @@ namespace xModeltoPicture
 {
     public partial class Form1 : Form
     {
+        public static ListBoxLog _listBoxLog;
+
         public Form1()
         {
             InitializeComponent();
+            _listBoxLog = new ListBoxLog(listBox1);
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -37,13 +40,13 @@ namespace xModeltoPicture
                     if (!Directory.Exists(folder))
                         Directory.CreateDirectory(folder);
 
-                    LogLine("Converting: " + filename);
+                    LogLine(Level.Info, "Converting: " + filename);
                     ModelData model = GetXModelData(filename);
 
                     string pngfilename = folder + basename + ".png";
-                    Bitmap img = Save_Nodes_As_Image(model.NodeName);                    
+                    Bitmap img = Save_Nodes_As_Image(model.NodeName);
                     img.Save(pngfilename, ImageFormat.Png);
-                    LogLine("Saved: " + pngfilename);
+                    LogLine(Level.Info, "Saved: " + pngfilename);
 
                     if (checkBoxFaces.Checked)
                     {
@@ -84,7 +87,7 @@ namespace xModeltoPicture
                                             string facefilename = folder + basename + "_" + line + "_" + name + ".png";
                                             Bitmap faceimg = Save_Nodes_As_Image(model.NodeName, newFaceInfo);
                                             faceimg.Save(facefilename, ImageFormat.Png);
-                                            LogLine("Saved: " + facefilename);
+                                            LogLine(Level.Info, "Saved: " + facefilename);
                                         }
                                     }
                                 }
@@ -92,7 +95,7 @@ namespace xModeltoPicture
                         }
                         catch (Exception ex)
                         {
-                            LogLine("Error: " + ex.Message);
+                            LogLine(Level.Error, "Error: " + ex.Message);
                         }
                     }
 
@@ -107,12 +110,12 @@ namespace xModeltoPicture
                                 string statefilename = folder + basename + "_" + state + ".png";
                                 Bitmap stateimg = Save_Nodes_As_Image(model.NodeName, stateInfo);
                                 stateimg.Save(statefilename, ImageFormat.Png);
-                                LogLine("Saved: " + statefilename);
+                                LogLine(Level.Info, "Saved: " + statefilename);
                             }
                         }
                         catch (Exception ex)
                         {
-                            LogLine("Error: " + ex.Message);
+                            LogLine(Level.Error, "Error: " + ex.Message);
                         }
                     }
 
@@ -127,21 +130,21 @@ namespace xModeltoPicture
                                 string subfilename = folder + basename + "_" + sub + ".png";
                                 Bitmap subimg = Save_Nodes_As_Image(model.NodeName, subInfo);
                                 subimg.Save(subfilename, ImageFormat.Png);
-                                LogLine("Saved: " + subfilename);
+                                LogLine(Level.Info, "Saved: " + subfilename);
                             }
                         }
                         catch (Exception ex)
                         {
-                            LogLine("Error: " + ex.Message);
+                            LogLine(Level.Error, "Error: " + ex.Message);
                         }
                     }
-                    LogLine("Done");
+                    LogLine(Level.Info, "Done");
                     Process.Start("explorer.exe", folder);
                 }
             }
             catch (Exception ex)
             {
-                LogLine("Error: " + ex.Message);
+                LogLine(Level.Error, "Error: " + ex.Message);
                 MessageBox.Show(ex.Message);
             }
         }
@@ -209,7 +212,8 @@ namespace xModeltoPicture
                             }
                             else
                             {
-                                nodes = parseNodeInfo(attr.Value);
+                                if (!string.IsNullOrEmpty(attr.Value))
+                                    nodes = parseNodeInfo(attr.Value);
                                 linename = attr.Name;
                                 if (nodes.Count != 0 && iCustomColor == 0)
                                     lines.Add(attr.Name, new Tuple<List<int>, Color>(nodes, forceColor));
@@ -222,7 +226,7 @@ namespace xModeltoPicture
             }
             catch (Exception ex)
             {
-                LogLine("Error: " + custommodel[0].OuterXml + ex.Message);
+                LogLine(Level.Error, "Error: " + custommodel[0].OuterXml + ex.Message);
             }
 
             try
@@ -264,7 +268,7 @@ namespace xModeltoPicture
             }
             catch (Exception ex)
             {
-                LogLine("Error: " + custommodel[0].OuterXml + ex.Message);
+                LogLine(Level.Error, "Error: " + custommodel[0].OuterXml + ex.Message);
             }
 
             try
@@ -294,7 +298,7 @@ namespace xModeltoPicture
             }
             catch (Exception ex)
             {
-                LogLine("Error: " + custommodel[0].OuterXml + ex.Message);
+                LogLine(Level.Error, "Error: " + custommodel[0].OuterXml + ex.Message);
             }
 
             return returnData;
@@ -325,7 +329,7 @@ namespace xModeltoPicture
                     bool worked = int.TryParse(element, out num);
                     if (!worked)
                     {
-                        LogLine("Invalid Line "+ element);
+                        LogLine(Level.Error, "Invalid Line " + element);
                         return nodes;
                     }
                         
@@ -388,9 +392,9 @@ namespace xModeltoPicture
             return bmp;     //return Bitmap Image 
         }
 
-        private void LogLine(string line)
+        private void LogLine(Level lvl,string line)
         {
-            listBox1.Items.Add(line);
+            _listBoxLog.Log(lvl, line);
         }
     }
 }

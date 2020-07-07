@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Drawing;
 using System.Windows.Forms;
+using NLog;
 
 namespace xModeltoPicture
 {
@@ -18,7 +19,6 @@ namespace xModeltoPicture
 	};
 	public sealed class ListBoxLog : IDisposable
 	{
-
 		private const string DEFAULT_MESSAGE_FORMAT = "{0} [{5}] : {8}";
 		private const int DEFAULT_MAX_LINES_IN_LISTBOX = 2000;
 
@@ -28,6 +28,8 @@ namespace xModeltoPicture
 		private int _maxEntriesInListBox;
 		private bool _canAdd;
 		private bool _paused;
+
+		private static Logger logger = LogManager.GetCurrentClassLogger();
 
 		private void OnHandleCreated(object sender, EventArgs e)
 		{
@@ -133,6 +135,30 @@ namespace xModeltoPicture
 		private void AddALogEntry(object item)
 		{
 			_listBox.Items.Add(item);
+			switch (((LogEvent)item).Level)
+			{
+				case Level.Critical:
+					logger.Fatal(((LogEvent)item).Message);
+					break;
+				case Level.Error:
+					logger.Error(((LogEvent)item).Message);
+					break;
+				case Level.Warning:
+					logger.Warn(((LogEvent)item).Message);
+					break;
+				case Level.Info:
+					logger.Info(((LogEvent)item).Message);
+					break;
+				case Level.Verbose:
+					logger.Debug(((LogEvent)item).Message);
+					break;
+				case Level.Debug:
+					logger.Debug(((LogEvent)item).Message);
+					break;
+				default:
+					logger.Trace(((LogEvent)item).Message);
+					break;
+			}
 
 			if (_listBox.Items.Count > _maxEntriesInListBox)
 			{
