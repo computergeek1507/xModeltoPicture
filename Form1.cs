@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
+using System.Diagnostics;
 
 namespace xModeltoPicture
 {
@@ -20,63 +21,6 @@ namespace xModeltoPicture
         {
             InitializeComponent();
         }
-
-        public Bitmap Save_Nodes_As_Image(string[,] NodeName, Dictionary<string ,Tuple<List<int>, Color>> overRide = null)
-        {
-            overRide = overRide ?? new Dictionary<string, Tuple<List<int>, Color>>();
-            //creating bitmap image
-            Bitmap bmp = new Bitmap(1, 1);
-
-            //FromImage method creates a new Graphics from the specified Image.
-            Graphics graphics = Graphics.FromImage(bmp);
-            // Create the Font object for the image text drawing.
-            // Font font = new Font(fontname, fontsize);
-            // Instantiating object of Bitmap image again with the correct size for the text and font.
-
-            bmp = new Bitmap(bmp, NodeName.GetUpperBound(0), NodeName.GetUpperBound(1));
-            graphics = Graphics.FromImage(bmp);
-
-            //Brush brush = (Brush)Brushes.White;
-
-            //Color col = Color.Black;
-
-            //System.Drawing.SolidBrush myBrush = new System.Drawing.SolidBrush(col);
-
-            Brush brush = (Brush)Brushes.Black;
-            //Graphics g = this.CreateGraphics();
-
-            for (int i = 0; i < NodeName.GetUpperBound(0); i++)
-            {
-                for (int j = 0; j < NodeName.GetUpperBound(1); j++)
-                {
-                    if (!string.IsNullOrEmpty(NodeName[i, j]))
-                    {
-                        if (overRide.Count == 0)
-                            graphics.FillRectangle(brush, i, j, 1, 1);
-                        else 
-                        {
-                            foreach(string key in overRide.Keys)
-                            {
-                                List<int> nodes = overRide[key].Item1;
-                                Brush myBrush = new System.Drawing.SolidBrush(overRide[key].Item2);
-
-                                if (nodes.Contains(int.Parse(NodeName[i, j])))
-                                {
-                                    graphics.FillRectangle(myBrush, i, j, 1, 1);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-            //font.Dispose();
-            graphics.Flush();
-            graphics.Dispose();
-            return bmp;     //return Bitmap Image 
-        }
-
-        
 
         private void button1_Click(object sender, EventArgs e)
         {
@@ -97,91 +41,116 @@ namespace xModeltoPicture
                     ModelData model = GetXModelData(filename);
 
                     string pngfilename = folder + basename + ".png";
-                    //string pngfilename = Path.ChangeExtension(filename, ".png");
                     Bitmap img = Save_Nodes_As_Image(model.NodeName);                    
                     img.Save(pngfilename, ImageFormat.Png);
                     LogLine("Saved: " + pngfilename);
 
                     if (checkBoxFaces.Checked)
                     {
-                        foreach (string face in model.Faceinfo.Keys)
+                        try
                         {
-                            Dictionary<string, Tuple<List<int>, Color>> faceInfo = model.Faceinfo[face];
-
-                            for (int i = 0; i <= 2; i++)
+                            foreach (string face in model.Faceinfo.Keys)
                             {
-                                string name = "Eyes-Open";
-                                //string name2 = "Eyes-Closed";
-                                if (i == 1)
-                                {
-                                    name = "Eyes-Closed";
-                                   // name2 = "Eyes-Open";
-                                }
+                                Dictionary<string, Tuple<List<int>, Color>> faceInfo = model.Faceinfo[face];
 
-                                //Dictionary<string, Tuple<List<int>, Color>> newFaceInfo = new Dictionary<string, Tuple<List<int>, Color>>();
-
-                                foreach(string line in faceInfo.Keys)
+                                for (int i = 0; i <= 2; i++)
                                 {
-                                    if (line.ToUpper().StartsWith("Mouth".ToUpper()))
+                                    string name = "Eyes-Open";
+                                    if (i == 1)
                                     {
-                                        Dictionary<string, Tuple<List<int>, Color>> newFaceInfo = new Dictionary<string, Tuple<List<int>, Color>>();
+                                        name = "Eyes-Closed";
+                                    }
 
-                                        if (faceInfo.Keys.Contains(name))
-                                            newFaceInfo.Add(name, faceInfo[name]);
-                                        else
-                                            continue;
+                                    foreach (string line in faceInfo.Keys)
+                                    {
+                                        if (line.ToUpper().StartsWith("Mouth".ToUpper()))
+                                        {
+                                            Dictionary<string, Tuple<List<int>, Color>> newFaceInfo = new Dictionary<string, Tuple<List<int>, Color>>();
 
-                                        if (faceInfo.Keys.Contains(line))
-                                            newFaceInfo.Add(line, faceInfo[line]);
+                                            if (faceInfo.Keys.Contains(name))
+                                                newFaceInfo.Add(name, faceInfo[name]);
+                                            else
+                                                continue;//if Eyes-Open or Eyes-Closed not set, dont create photos
 
-                                        if (faceInfo.Keys.Contains("FaceOutline"))
-                                            newFaceInfo.Add("FaceOutline", faceInfo["FaceOutline"]);
+                                            if (faceInfo.Keys.Contains(line))
+                                                newFaceInfo.Add(line, faceInfo[line]);
 
-                                        if (faceInfo.Keys.Contains("FaceOutline2"))
-                                            newFaceInfo.Add("FaceOutline2", faceInfo["FaceOutline2"]);
+                                            if (faceInfo.Keys.Contains("FaceOutline"))
+                                                newFaceInfo.Add("FaceOutline", faceInfo["FaceOutline"]);
 
-                                        string facefilename = folder + basename + "_" + line + "_" + name + ".png";
-                                        Bitmap faceimg = Save_Nodes_As_Image(model.NodeName, newFaceInfo);
-                                        faceimg.Save(facefilename, ImageFormat.Png);
-                                        LogLine("Saved: " + facefilename);
+                                            if (faceInfo.Keys.Contains("FaceOutline2"))
+                                                newFaceInfo.Add("FaceOutline2", faceInfo["FaceOutline2"]);
+
+                                            string facefilename = folder + basename + "_" + line + "_" + name + ".png";
+                                            Bitmap faceimg = Save_Nodes_As_Image(model.NodeName, newFaceInfo);
+                                            faceimg.Save(facefilename, ImageFormat.Png);
+                                            LogLine("Saved: " + facefilename);
+                                        }
                                     }
                                 }
-                            }                        
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LogLine("Error: " + ex.Message);
                         }
                     }
 
                     if (checkBoxStates.Checked)
                     {
-                        foreach (string state in model.Stateinfo.Keys)
+                        try
                         {
-                            Dictionary<string, Tuple<List<int>, Color>> stateInfo = model.Stateinfo[state];
+                            foreach (string state in model.Stateinfo.Keys)
+                            {
+                                Dictionary<string, Tuple<List<int>, Color>> stateInfo = model.Stateinfo[state];
 
-                            string statefilename = folder + basename + "_" + state + ".png";
-                            Bitmap stateimg = Save_Nodes_As_Image(model.NodeName, stateInfo);
-                            stateimg.Save(statefilename, ImageFormat.Png);
-                            LogLine("Saved: " + statefilename);
+                                string statefilename = folder + basename + "_" + state + ".png";
+                                Bitmap stateimg = Save_Nodes_As_Image(model.NodeName, stateInfo);
+                                stateimg.Save(statefilename, ImageFormat.Png);
+                                LogLine("Saved: " + statefilename);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LogLine("Error: " + ex.Message);
                         }
                     }
 
                     if (checkBoxSubmodels.Checked)
                     {
-                        foreach (string sub in model.SubModels.Keys)
+                        try
                         {
-                            Dictionary<string, Tuple<List<int>, Color>> subInfo = model.SubModels[sub];
+                            foreach (string sub in model.SubModels.Keys)
+                            {
+                                Dictionary<string, Tuple<List<int>, Color>> subInfo = model.SubModels[sub];
 
-                            string subfilename = folder + basename + "_" + sub + ".png";
-                            Bitmap subimg = Save_Nodes_As_Image(model.NodeName, subInfo);
-                            subimg.Save(subfilename, ImageFormat.Png);
-                            LogLine("Saved: " + subfilename);
+                                string subfilename = folder + basename + "_" + sub + ".png";
+                                Bitmap subimg = Save_Nodes_As_Image(model.NodeName, subInfo);
+                                subimg.Save(subfilename, ImageFormat.Png);
+                                LogLine("Saved: " + subfilename);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LogLine("Error: " + ex.Message);
                         }
                     }
                     LogLine("Done");
+                    Process.Start("explorer.exe", folder);
                 }
             }
             catch (Exception ex)
             {
                 LogLine("Error: " + ex.Message);
                 MessageBox.Show(ex.Message);
+            }
+        }
+
+        private void buttonSelect_Click(object sender, EventArgs e)
+        {
+            if (openXmodelFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                textBoxFile.Text = openXmodelFileDialog.FileName;
             }
         }
 
@@ -206,10 +175,9 @@ namespace xModeltoPicture
             {
                 string[] elements = rows[i].Split(',');
                 for (int j = 0; j < elements.Length; j++)
-                {
                     returnData.NodeName[j, i] = elements[j];
-                }
             }
+
             try
             {
                 foreach (XmlNode child in custommodel[0].SelectNodes("faceInfo"))
@@ -218,35 +186,45 @@ namespace xModeltoPicture
                     if (type.ToUpper() != "NodeRange".ToUpper())
                         continue;
                     string name = child.Attributes["Name"].Value;
-                    Color forceColor = Color.Black;
+                    string sCustomColor = child.Attributes["CustomColors"].Value;
+                    if (string.IsNullOrEmpty(sCustomColor))
+                        sCustomColor = "0";
+                    int iCustomColor = int.Parse(sCustomColor);
+                    Color forceColor = Color.White;
                     Dictionary < string, Tuple<List<int>, Color>> lines = new Dictionary < string, Tuple<List<int>, Color>>();
+                    List<int> nodes = new List<int>();
+                    string linename = string.Empty;
                     foreach (XmlAttribute attr in child.Attributes)
                     {
                         if (attr.Name.ToUpper().StartsWith("FaceOutline".ToUpper()) ||
-                            attr.Name.ToUpper().StartsWith("Eyes".ToUpper()) ||
-                            attr.Name.ToUpper().StartsWith("Mouth".ToUpper()))
+                            attr.Name.ToUpper().StartsWith("Eyes-".ToUpper()) ||
+                            attr.Name.ToUpper().StartsWith("Mouth-".ToUpper()))
                         {
                             if (attr.Name.ToUpper().EndsWith("-Color".ToUpper()))
                             {
                                 if (!string.IsNullOrEmpty(attr.Value))
-                                {
                                     forceColor = System.Drawing.ColorTranslator.FromHtml(attr.Value);
-                                }
+                                if (!string.IsNullOrEmpty(linename) && nodes.Count != 0 && iCustomColor == 1)
+                                    lines.Add(linename, new Tuple<List<int>, Color>(nodes, forceColor));
                             }
                             else
                             {
-                                List<int> nodes = parseNodeInfo(attr.Value);
-                                lines.Add(attr.Name, new Tuple<List<int>, Color>(nodes, forceColor));
+                                nodes = parseNodeInfo(attr.Value);
+                                linename = attr.Name;
+                                if (nodes.Count != 0 && iCustomColor == 0)
+                                    lines.Add(attr.Name, new Tuple<List<int>, Color>(nodes, forceColor));
                             }
                         }
                     }
-                    returnData.Faceinfo.Add(name, lines);
+                    if (lines.Count != 0)
+                        returnData.Faceinfo.Add(name, lines);
                 }
             }
             catch (Exception ex)
             {
                 LogLine("Error: " + custommodel[0].OuterXml + ex.Message);
             }
+
             try
             {
                 foreach (XmlNode child in custommodel[0].SelectNodes("stateInfo"))
@@ -255,7 +233,7 @@ namespace xModeltoPicture
                     if (type.ToUpper() != "NodeRange".ToUpper())
                         continue;
                     string name = child.Attributes["Name"].Value;
-                    Color forceColor = Color.Black;
+                    Color forceColor = Color.White;
                     Dictionary<string, Tuple<List<int>, Color>> lines = new Dictionary<string, Tuple<List<int>, Color>>();
 
                     List<int> nodes = new List<int>();
@@ -266,13 +244,11 @@ namespace xModeltoPicture
                             if (attr.Name.ToUpper().EndsWith("-Color".ToUpper()))
                             {
                                 if (!string.IsNullOrEmpty(attr.Value))
-                                {
                                     forceColor = System.Drawing.ColorTranslator.FromHtml(attr.Value);
-                                }
                             }
                             else if (attr.Name.ToUpper().EndsWith("-Name".ToUpper()))
                             {
-                                if(!string.IsNullOrEmpty(attr.Value))
+                                if(!string.IsNullOrEmpty(attr.Value) && nodes.Count != 0)
                                     lines.Add(attr.Value, new Tuple<List<int>, Color>(nodes, forceColor));
                             }
                             else
@@ -282,13 +258,15 @@ namespace xModeltoPicture
                             }
                         }
                     }
-                    returnData.Stateinfo.Add(name, lines);
+                    if (lines.Count != 0)
+                        returnData.Stateinfo.Add(name, lines);
                 }
             }
             catch (Exception ex)
             {
                 LogLine("Error: " + custommodel[0].OuterXml + ex.Message);
             }
+
             try
             {
 
@@ -298,7 +276,7 @@ namespace xModeltoPicture
                     if (type.ToUpper() != "ranges".ToUpper())
                         continue;
                     string name = child.Attributes["name"].Value;
-                    Color forceColor = Color.Black;
+                    Color forceColor = Color.White;
                     Dictionary<string, Tuple<List<int>, Color>> lines = new Dictionary<string, Tuple<List<int>, Color>>();
 
                     foreach (XmlAttribute attr in child.Attributes)
@@ -306,10 +284,12 @@ namespace xModeltoPicture
                         if (attr.Name.ToUpper().StartsWith("line".ToUpper()))
                         {
                             List<int> nodes = parseNodeInfo(attr.Value);
-                            lines.Add(attr.Name, new Tuple<List<int>, Color>(nodes, forceColor));
+                            if (nodes.Count != 0)
+                                lines.Add(attr.Name, new Tuple<List<int>, Color>(nodes, forceColor));
                         }
                     }
-                    returnData.SubModels.Add(name, lines);
+                    if (lines.Count != 0)
+                        returnData.SubModels.Add(name, lines);
                 }
             }
             catch (Exception ex)
@@ -352,25 +332,60 @@ namespace xModeltoPicture
                     start = end = int.Parse(element);
                 }
                 if (start > end)
-                {
                     start = end;
-                }
-                //start--;
-                //end--;
+
                 for (int n = start; n <= end; n++)
-                {
                     nodes.Add(n);
-                }
             }
             return nodes;
         }
 
-        private void buttonSelect_Click(object sender, EventArgs e)
+        public Bitmap Save_Nodes_As_Image(string[,] NodeName, Dictionary<string, Tuple<List<int>, Color>> overRide = null)
         {
-            if (openXmodelFileDialog.ShowDialog() == DialogResult.OK)
+            overRide = overRide ?? new Dictionary<string, Tuple<List<int>, Color>>();
+            //creating bitmap image
+            Bitmap bmp = new Bitmap(1, 1);
+
+            //FromImage method creates a new Graphics from the specified Image.
+            Graphics graphics = Graphics.FromImage(bmp);
+            // Create the Font object for the image text drawing.
+            // Font font = new Font(fontname, fontsize);
+            // Instantiating object of Bitmap image again with the correct size for the text and font.
+
+            bmp = new Bitmap(bmp, NodeName.GetUpperBound(0) + 1, NodeName.GetUpperBound(1) + 1);
+            graphics = Graphics.FromImage(bmp);
+
+            graphics.FillRectangle(Brushes.Black, 0, 0, NodeName.GetUpperBound(0) + 1, NodeName.GetUpperBound(1) + 1);
+
+            Brush brush = (Brush)Brushes.White;
+
+            for (int i = 0; i < NodeName.GetUpperBound(0) + 1; i++)
             {
-                textBoxFile.Text = openXmodelFileDialog.FileName;
+                for (int j = 0; j < NodeName.GetUpperBound(1) + 1; j++)
+                {
+                    if (!string.IsNullOrEmpty(NodeName[i, j]))
+                    {
+                        if (overRide.Count == 0)
+                            graphics.FillRectangle(brush, i, j, 1, 1);
+                        else
+                        {
+                            foreach (string key in overRide.Keys)
+                            {
+                                List<int> nodes = overRide[key].Item1;
+                                Brush myBrush = new System.Drawing.SolidBrush(overRide[key].Item2);
+
+                                if (nodes.Contains(int.Parse(NodeName[i, j])))
+                                    graphics.FillRectangle(myBrush, i, j, 1, 1);
+                            }
+                        }
+                    }
+                }
             }
+
+            //font.Dispose();
+            graphics.Flush();
+            graphics.Dispose();
+            return bmp;     //return Bitmap Image 
         }
 
         private void LogLine(string line)
